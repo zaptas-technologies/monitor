@@ -133,7 +133,7 @@ export default function UserTasks() {
               <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
             </div>
             <div className="input-group">
-              <label>Description</label>
+              <label>Activity</label>
               <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
             </div>
             <div className="input-group">
