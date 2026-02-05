@@ -70,9 +70,9 @@ export default function UserProjectDetail() {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
         <h1>{project.name}</h1>
-        <button type="button" className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
+        {/* <button type="button" className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
           {showForm ? 'Cancel' : 'Add activity / task'}
-        </button>
+        </button> */}
       </div>
       {project.description && (
         <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>{project.description}</p>

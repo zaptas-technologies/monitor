@@ -11,7 +11,7 @@ export default function UserTasks() {
     title: '',
     description: '',
     status: 'pending',
-    dueDate: '',
+    dueDate: new Date().toISOString().slice(0, 16), // default to today
     timeSpentMinutes: 0,
     project: '',
   });
@@ -57,7 +57,14 @@ export default function UserTasks() {
       const res = await fetchWithAuth('/api/tasks', { method: 'POST', body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed');
-      setForm({ title: '', description: '', status: 'pending', dueDate: '', timeSpentMinutes: 0, project: '' });
+      setForm({
+        title: '',
+        description: '',
+        status: 'pending',
+        dueDate: new Date().toISOString().slice(0, 16),
+        timeSpentMinutes: 0,
+        project: '',
+      });
       setShowForm(false);
       load();
     } catch (e) {
@@ -114,6 +121,14 @@ export default function UserTasks() {
 
   const formatDate = (d) => (d ? new Date(d).toLocaleString() : '—');
 
+  const formatTimeSpent = (minutes) => {
+    if (!minutes && minutes !== 0) return '—';
+    const hours = (minutes / 60).toFixed(1);
+    return hours.endsWith('.0') ? hours.slice(0, -2) : hours;
+  };
+
+  const getMaxDate = () => new Date().toISOString().slice(0, 16);
+
   if (loading) return <div className="page"><p>Loading tasks...</p></div>;
 
   return (
@@ -124,6 +139,7 @@ export default function UserTasks() {
           {showForm ? 'Cancel' : 'Add task'}
         </button>
       </div>
+
       {showForm && (
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ marginBottom: '1rem' }}>New task</h3>
@@ -146,11 +162,25 @@ export default function UserTasks() {
             </div>
             <div className="input-group">
               <label>Due date & time</label>
-              <input type="datetime-local" value={form.dueDate} onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))} />
+              <input
+                type="datetime-local"
+                value={form.dueDate}
+                max={getMaxDate()}
+                onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+              />
             </div>
             <div className="input-group">
-              <label>Time spent (minutes)</label>
-              <input type="number" min={0} value={form.timeSpentMinutes} onChange={(e) => setForm((f) => ({ ...f, timeSpentMinutes: e.target.value }))} />
+              <label>Time spent (hours)</label>
+              <input
+                type="number"
+                step="0.1"
+                min={0}
+                value={(Number(form.timeSpentMinutes) / 60).toFixed(1)}
+                onChange={(e) => {
+                  const hours = Number(e.target.value);
+                  setForm((f) => ({ ...f, timeSpentMinutes: Math.round(hours * 60) }));
+                }}
+              />
             </div>
             {projects.length > 0 && (
               <div className="input-group">
@@ -164,10 +194,13 @@ export default function UserTasks() {
               </div>
             )}
             {error && <p className="error-msg">{error}</p>}
-            <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? 'Adding...' : 'Add task'}</button>
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? 'Adding...' : 'Add task'}
+            </button>
           </form>
         </div>
       )}
+
       <div className="card">
         {tasks.length === 0 ? (
           <div className="empty-state"><p>No tasks yet. Add one above.</p></div>
@@ -194,11 +227,25 @@ export default function UserTasks() {
                       </div>
                       <div className="input-group" style={{ marginBottom: 0, flex: 1, minWidth: 160 }}>
                         <label>Due date</label>
-                        <input type="datetime-local" value={editForm.dueDate} onChange={(e) => setEditForm((f) => ({ ...f, dueDate: e.target.value }))} />
+                        <input
+                          type="datetime-local"
+                          value={editForm.dueDate}
+                          max={getMaxDate()}
+                          onChange={(e) => setEditForm((f) => ({ ...f, dueDate: e.target.value }))}
+                        />
                       </div>
                       <div className="input-group" style={{ marginBottom: 0, flex: 1, minWidth: 100 }}>
-                        <label>Time (min)</label>
-                        <input type="number" min={0} value={editForm.timeSpentMinutes} onChange={(e) => setEditForm((f) => ({ ...f, timeSpentMinutes: e.target.value }))} />
+                        <label>Time (h)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min={0}
+                          value={(Number(editForm.timeSpentMinutes) / 60).toFixed(1)}
+                          onChange={(e) => {
+                            const hours = Number(e.target.value);
+                            setEditForm((f) => ({ ...f, timeSpentMinutes: Math.round(hours * 60) }));
+                          }}
+                        />
                       </div>
                     </div>
                     {error && <p className="error-msg">{error}</p>}
@@ -214,7 +261,7 @@ export default function UserTasks() {
                       {t.project?.name && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>({t.project.name})</span>}
                       <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                         Status: <span className={`badge badge-${t.status}`}>{t.status.replace('_', ' ')}</span>
-                        {' · '}Due: {formatDate(t.dueDate)} · Time: {t.timeSpentMinutes ?? 0} min
+                        {' · '}Due: {formatDate(t.dueDate)} · Time: {formatTimeSpent(t.timeSpentMinutes)} h
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '0.35rem' }}>
