@@ -144,6 +144,17 @@ export default function UserTasks() {
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ marginBottom: '1rem' }}>New task</h3>
           <form onSubmit={handleCreate}>
+            {projects.length > 0 && (
+              <div className="input-group">
+                <label>Project</label>
+                <select value={form.project} onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}>
+                  <option value="">None</option>
+                  {projects.map((p) => (
+                    <option key={p._id} value={p._id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="input-group">
               <label>Title</label>
               <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
@@ -182,17 +193,7 @@ export default function UserTasks() {
                 }}
               />
             </div>
-            {projects.length > 0 && (
-              <div className="input-group">
-                <label>Project</label>
-                <select value={form.project} onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}>
-                  <option value="">None</option>
-                  {projects.map((p) => (
-                    <option key={p._id} value={p._id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            
             {error && <p className="error-msg">{error}</p>}
             <button type="submit" className="btn btn-primary" disabled={submitting}>
               {submitting ? 'Adding...' : 'Add task'}
