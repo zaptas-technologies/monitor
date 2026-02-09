@@ -49,7 +49,18 @@ router.get('/:id', protect, async (req, res) => {
 // POST /api/tasks - create task (user adds their task; admin can set createdBy for assignment)
 router.post('/', protect, async (req, res) => {
   try {
-    const { title, description, status, dueDate, timeSpentMinutes, project, createdBy } = req.body;
+    const {
+      title,
+      description,
+      status,
+      dueDate,
+      timeSpentMinutes,
+      project,
+      createdBy,
+      titleStartDate,
+      titleEndDate,
+      titleTotalDays,
+    } = req.body;
     if (!title) return res.status(400).json({ message: 'Task title required' });
     const ownerId = req.user.role === 'admin' && createdBy ? createdBy : req.user._id;
     if (project) {
@@ -71,7 +82,39 @@ router.post('/', protect, async (req, res) => {
     if (project && title) {
       const trimmedTitle = String(title).trim();
       if (trimmedTitle) {
-        await Project.findByIdAndUpdate(project, { $addToSet: { taskTitles: trimmedTitle } });
+        let start = null;
+        let end = null;
+        if (titleStartDate) {
+          const s = new Date(titleStartDate);
+          if (!Number.isNaN(s.getTime())) start = s;
+        }
+        if (titleEndDate) {
+          const e = new Date(titleEndDate);
+          if (!Number.isNaN(e.getTime())) end = e;
+        } else if (titleStartDate && titleTotalDays) {
+          const s = new Date(titleStartDate);
+          if (!Number.isNaN(s.getTime()) && Number(titleTotalDays) > 0) {
+            s.setDate(s.getDate() + Number(titleTotalDays) - 1);
+            end = s;
+          }
+        }
+
+        const update = {
+          $addToSet: {
+            taskTitles: trimmedTitle,
+          },
+        };
+        if (start || end) {
+          update.$addToSet.taskTitleConfigs = {
+            title: trimmedTitle,
+            startDate: start || null,
+            endDate: end || null,
+          };
+        } else {
+          update.$addToSet.taskTitleConfigs = { title: trimmedTitle };
+        }
+
+        await Project.findByIdAndUpdate(project, update);
       }
     }
     const populated = await Task.findById(task._id)
@@ -102,7 +145,12 @@ router.patch('/:id', protect, async (req, res) => {
     if (task.project && task.title) {
       const trimmedTitle = String(task.title).trim();
       if (trimmedTitle) {
-        await Project.findByIdAndUpdate(task.project, { $addToSet: { taskTitles: trimmedTitle } });
+        await Project.findByIdAndUpdate(task.project, {
+          $addToSet: {
+            taskTitles: trimmedTitle,
+            taskTitleConfigs: { title: trimmedTitle },
+          },
+        });
       }
     }
     const populated = await Task.findById(task._id)

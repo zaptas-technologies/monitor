@@ -24,7 +24,7 @@ export default function AdminProjects() {
     return `${year}-${month}-${day}`;
   };
 
-  // Sum of days for all task title ranges (overlaps and same dates all counted)
+  // Sum of days for all task title ranges (overlaps and same dates all counted) - for new project form
   const getProjectTotalDays = () => {
     const ranges = (form.taskTitleConfigs || []).filter((c) => c.startDate && c.endDate);
     if (ranges.length === 0) return null;
@@ -49,6 +49,38 @@ export default function AdminProjects() {
     });
 
     return total || null;
+  };
+
+  const getProjectRangeSummary = (project) => {
+    if (!project || !Array.isArray(project.taskTitleConfigs) || project.taskTitleConfigs.length === 0) return null;
+    const ranges = project.taskTitleConfigs.filter((c) => c.startDate && c.endDate);
+    if (ranges.length === 0) return null;
+
+    const toUtcDay = (val) => {
+      if (!val) return null;
+      const parts = String(val).slice(0, 10).split('-').map(Number);
+      if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
+      const [y, m, d] = parts;
+      return Date.UTC(y, m - 1, d);
+    };
+
+    let minStart = null;
+    let maxEnd = null;
+    ranges.forEach((c) => {
+      const s = toUtcDay(c.startDate);
+      const e = toUtcDay(c.endDate);
+      if (s == null || e == null) return;
+      if (minStart == null || s < minStart) minStart = s;
+      if (maxEnd == null || e > maxEnd) maxEnd = e;
+    });
+    if (minStart == null || maxEnd == null) return null;
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const days = Math.floor((maxEnd - minStart) / MS_PER_DAY) + 1;
+    const startDate = new Date(minStart);
+    const endDate = new Date(maxEnd);
+    const startLabel = startDate.toLocaleDateString();
+    const endLabel = endDate.toLocaleDateString();
+    return { startLabel, endLabel, days };
   };
 
   const load = async () => {
@@ -309,7 +341,20 @@ export default function AdminProjects() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div>
                     <Link to={`/admin/projects/${p._id}`} style={{ fontWeight: 500 }}>{p.name}</Link>
-                    {p.description && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.9rem' }}>{p.description}</span>}
+                    {p.description && (
+                      <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.9rem' }}>
+                        {p.description}
+                      </span>
+                    )}
+                    {(() => {
+                      const summary = getProjectRangeSummary(p);
+                      if (!summary) return null;
+                      return (
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                          Planned: {summary.startLabel} to {summary.endLabel} ({summary.days} day{summary.days === 1 ? '' : 's'})
+                        </div>
+                      );
+                    })()}
                     {p.assignedTo?.length > 0 && (
                       <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
                         ({p.assignedTo.length} user(s))
