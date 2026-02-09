@@ -68,6 +68,12 @@ router.post('/', protect, async (req, res) => {
       project: project || null,
       createdBy: ownerId,
     });
+    if (project && title) {
+      const trimmedTitle = String(title).trim();
+      if (trimmedTitle) {
+        await Project.findByIdAndUpdate(project, { $addToSet: { taskTitles: trimmedTitle } });
+      }
+    }
     const populated = await Task.findById(task._id)
       .populate('project', 'name')
       .populate('createdBy', 'name email');
@@ -93,6 +99,12 @@ router.patch('/:id', protect, async (req, res) => {
     if (timeSpentMinutes != null) task.timeSpentMinutes = timeSpentMinutes;
     if (project != null) task.project = project;
     await task.save();
+    if (task.project && task.title) {
+      const trimmedTitle = String(task.title).trim();
+      if (trimmedTitle) {
+        await Project.findByIdAndUpdate(task.project, { $addToSet: { taskTitles: trimmedTitle } });
+      }
+    }
     const populated = await Task.findById(task._id)
       .populate('project', 'name')
       .populate('createdBy', 'name email');

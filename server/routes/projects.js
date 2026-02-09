@@ -46,12 +46,33 @@ router.get('/:id', protect, async (req, res) => {
 // POST /api/projects - create project (admin only)
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { name, description, assignedTo } = req.body;
+    const { name, description, assignedTo, taskTitles, taskTitleConfigs } = req.body;
     if (!name) return res.status(400).json({ message: 'Project name required' });
+    let cleanedTaskTitles = [];
+    if (Array.isArray(taskTitles)) {
+      cleanedTaskTitles = taskTitles
+        .map((t) => String(t).trim())
+        .filter((t) => t.length > 0);
+    }
+    let cleanedConfigs = [];
+    if (Array.isArray(taskTitleConfigs)) {
+      cleanedConfigs = taskTitleConfigs
+        .map((c) => ({
+          title: c && c.title != null ? String(c.title).trim() : '',
+          startDate: c && c.startDate ? new Date(c.startDate) : null,
+          endDate: c && c.endDate ? new Date(c.endDate) : null,
+        }))
+        .filter((c) => c.title.length > 0);
+      // ensure flat titles also contain these
+      const configTitles = cleanedConfigs.map((c) => c.title);
+      cleanedTaskTitles = Array.from(new Set([...cleanedTaskTitles, ...configTitles]));
+    }
     const project = await Project.create({
       name,
       description: description || '',
       assignedTo: assignedTo || [],
+      taskTitles: cleanedTaskTitles,
+      taskTitleConfigs: cleanedConfigs,
       createdBy: req.user._id,
     });
     const populated = await Project.findById(project._id)
@@ -66,12 +87,30 @@ router.post('/', protect, adminOnly, async (req, res) => {
 // PATCH /api/projects/:id - update (admin only), e.g. assign users
 router.patch('/:id', protect, adminOnly, async (req, res) => {
   try {
-    const { name, description, assignedTo } = req.body;
+    const { name, description, assignedTo, taskTitles, taskTitleConfigs } = req.body;
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: 'Project not found' });
     if (name != null) project.name = name;
     if (description != null) project.description = description;
     if (Array.isArray(assignedTo)) project.assignedTo = assignedTo;
+    if (Array.isArray(taskTitles)) {
+      project.taskTitles = taskTitles
+        .map((t) => String(t).trim())
+        .filter((t) => t.length > 0);
+    }
+    if (Array.isArray(taskTitleConfigs)) {
+      const cleanedConfigs = taskTitleConfigs
+        .map((c) => ({
+          title: c && c.title != null ? String(c.title).trim() : '',
+          startDate: c && c.startDate ? new Date(c.startDate) : null,
+          endDate: c && c.endDate ? new Date(c.endDate) : null,
+        }))
+        .filter((c) => c.title.length > 0);
+      project.taskTitleConfigs = cleanedConfigs;
+      const configTitles = cleanedConfigs.map((c) => c.title);
+      const mergedTitles = Array.from(new Set([...(project.taskTitles || []), ...configTitles]));
+      project.taskTitles = mergedTitles;
+    }
     await project.save();
     const populated = await Project.findById(project._id)
       .populate('assignedTo', 'name email')

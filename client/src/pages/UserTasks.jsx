@@ -129,6 +129,21 @@ export default function UserTasks() {
 
   const getMaxDate = () => new Date().toISOString().slice(0, 16);
 
+  const selectedProject = projects.find((p) => p._id === form.project);
+  const getTaskProject = (task) => projects.find((p) => p._id === (task.project?._id || task.project));
+  const getProjectTaskTitles = (project) => {
+    if (!project) return [];
+    if (Array.isArray(project.taskTitleConfigs) && project.taskTitleConfigs.length > 0) {
+      return project.taskTitleConfigs
+        .map((c) => c.title)
+        .filter((t) => t && t.trim().length > 0);
+    }
+    if (Array.isArray(project.taskTitles) && project.taskTitles.length > 0) {
+      return project.taskTitles;
+    }
+    return [];
+  };
+
   if (loading) return <div className="page"><p>Loading tasks...</p></div>;
 
   return (
@@ -157,7 +172,19 @@ export default function UserTasks() {
             )}
             <div className="input-group">
               <label>Title</label>
-              <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                list={selectedProject && getProjectTaskTitles(selectedProject).length > 0 ? 'taskTitleOptions' : undefined}
+                required
+              />
+              {selectedProject && getProjectTaskTitles(selectedProject).length > 0 && (
+                <datalist id="taskTitleOptions">
+                  {getProjectTaskTitles(selectedProject).map((title) => (
+                    <option key={title} value={title} />
+                  ))}
+                </datalist>
+              )}
             </div>
             <div className="input-group">
               <label>Activity</label>
@@ -211,9 +238,28 @@ export default function UserTasks() {
               <li key={t._id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
                 {editingId === t._id ? (
                   <form onSubmit={handleUpdate} style={{ marginTop: '0.5rem' }}>
-                    <div className="input-group">
-                      <input value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} required />
-                    </div>
+                    {(() => {
+                      const taskProject = getTaskProject(t);
+                      const titles = getProjectTaskTitles(taskProject);
+                      return (
+                        <div className="input-group">
+                          <label>Title</label>
+                          <input
+                            value={editForm.title}
+                            onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                            list={taskProject && titles.length > 0 ? `editTitleOptions-${t._id}` : undefined}
+                            required
+                          />
+                          {taskProject && titles.length > 0 && (
+                            <datalist id={`editTitleOptions-${t._id}`}>
+                              {titles.map((title) => (
+                                <option key={title} value={title} />
+                              ))}
+                            </datalist>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className="input-group">
                       <textarea value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
                     </div>
