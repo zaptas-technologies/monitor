@@ -2,6 +2,55 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+function TaskDetailModal({ task, onClose }) {
+  if (!task) return null;
+  const formatDate = (d) => (d ? new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—');
+  return (
+    <div className="modal-backdrop" onClick={onClose} role="presentation">
+      <div className="modal-content task-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">{task.title}</h2>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">&times;</button>
+        </div>
+        <div className="modal-body">
+          <dl className="detail-list">
+            <div className="detail-row">
+              <dt>Status</dt>
+              <dd><span className={`badge badge-${task.status}`}>{task.status.replace('_', ' ')}</span></dd>
+            </div>
+            {task.description && (
+              <div className="detail-row">
+                <dt>Description</dt>
+                <dd>{task.description}</dd>
+              </div>
+            )}
+            <div className="detail-row">
+              <dt>Created by</dt>
+              <dd>{task.createdBy?.name ?? '—'} {task.createdBy?.email && <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>({task.createdBy.email})</span>}</dd>
+            </div>
+            <div className="detail-row">
+              <dt>Due date</dt>
+              <dd>{formatDate(task.dueDate)}</dd>
+            </div>
+            <div className="detail-row">
+              <dt>Time spent</dt>
+              <dd>{task.timeSpentMinutes ?? 0} min</dd>
+            </div>
+            <div className="detail-row">
+              <dt>Created</dt>
+              <dd>{formatDate(task.createdAt)}</dd>
+            </div>
+            <div className="detail-row">
+              <dt>Last updated</dt>
+              <dd>{formatDate(task.updatedAt)}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminProjectDetail() {
   const { id } = useParams();
   const { fetchWithAuth } = useAuth();
@@ -13,6 +62,7 @@ export default function AdminProjectDetail() {
   const [form, setForm] = useState({ name: '', description: '', assignedTo: [] });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   const load = async () => {
     try {
@@ -120,9 +170,16 @@ export default function AdminProjectDetail() {
         {tasks.length === 0 ? (
           <div className="empty-state"><p>No tasks in this project yet. Users can add tasks when assigned.</p></div>
         ) : (
-          <ul style={{ listStyle: 'none' }}>
+          <ul className="task-list">
             {tasks.map((t) => (
-              <li key={t._id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+              <li
+                key={t._id}
+                className="task-list-item"
+                onClick={() => setSelectedTask(t)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedTask(t); } }}
+              >
                 <strong>{t.title}</strong>
                 <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>by {t.createdBy?.name}</span>
                 <span className={`badge badge-${t.status}`} style={{ marginLeft: '0.5rem' }}>{t.status.replace('_', ' ')}</span>
@@ -134,6 +191,8 @@ export default function AdminProjectDetail() {
           </ul>
         )}
       </div>
+
+      {selectedTask && <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />}
     </div>
   );
 }
