@@ -215,7 +215,7 @@ export default function AdminProjects() {
                       addTaskTitle();
                     }
                   }}
-                  placeholder="e.g. Daily report"
+                  placeholder="e.g. report"
                   style={{ flex: '1 1 160px' }}
                 />
                 <input
