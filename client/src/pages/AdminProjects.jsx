@@ -78,6 +78,35 @@ export default function AdminProjects() {
     return { total, done, percent };
   };
 
+  const getProjectTotalTaskDays = (project) => {
+    if (!project || !Array.isArray(project.taskTitleConfigs)) return null;
+    const ranges = project.taskTitleConfigs.filter((c) => c.startDate && c.endDate);
+    if (ranges.length === 0) return null;
+
+    const toUtcDay = (val) => {
+      if (!val) return null;
+      const parts = String(val).slice(0, 10).split('-').map(Number);
+      if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
+      const [y, m, d] = parts;
+      return Date.UTC(y, m - 1, d);
+    };
+
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    let minStart = null;
+    let maxEnd = null;
+
+    ranges.forEach((c) => {
+      const s = toUtcDay(c.startDate);
+      const e = toUtcDay(c.endDate);
+      if (s == null || e == null) return;
+      if (minStart == null || s < minStart) minStart = s;
+      if (maxEnd == null || e > maxEnd) maxEnd = e;
+    });
+
+    if (minStart == null || maxEnd == null) return null;
+    return Math.floor((maxEnd - minStart) / MS_PER_DAY) + 1;
+  };
+
   const load = async () => {
     try {
       const [prRes, uRes] = await Promise.all([
@@ -336,6 +365,29 @@ export default function AdminProjects() {
                         return (
                           <span>
                             Completed titles: <strong>{done}</strong> / {total} ({percent}%)
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div style={{ marginTop: '0.1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      {(() => {
+                        const totalDays = getProjectTotalTaskDays(p);
+                        if (totalDays == null) return <span>Task days: —</span>;
+                        const { total, done } = getTitleCompletion(p);
+                        if (total === 0) {
+                          return (
+                            <span>
+                              Task days: <strong>0</strong> / {totalDays} (0%)
+                            </span>
+                          );
+                        }
+                        const completedDays = Math.round((totalDays * done) / total);
+                        const safeCompleted = Math.max(0, Math.min(completedDays, totalDays));
+                        const percentDays =
+                          totalDays > 0 ? Math.round((safeCompleted / totalDays) * 100) : 0;
+                        return (
+                          <span>
+                            Task days: <strong>{safeCompleted}</strong> / {totalDays} ({percentDays}%)
                           </span>
                         );
                       })()}
