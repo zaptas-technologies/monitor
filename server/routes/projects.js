@@ -8,18 +8,46 @@ const router = express.Router();
 // GET /api/projects - admin: all; user: only assigned
 router.get('/', protect, async (req, res) => {
   try {
-    if (req.user.role === 'admin') {
-      const projects = await Project.find()
-        .populate('assignedTo', 'name email')
-        .populate('createdBy', 'name email')
-        .sort({ createdAt: -1 });
-      return res.json(projects);
-    }
-    const projects = await Project.find({ assignedTo: req.user._id })
+    const query = req.user.role === 'admin' ? {} : { assignedTo: req.user._id };
+
+    // Use lean() so we can safely attach computed fields (completion stats)
+    const projects = await Project.find(query)
       .populate('assignedTo', 'name email')
       .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 });
-    res.json(projects);
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const projectIds = projects.map((p) => p._id).filter(Boolean);
+    if (projectIds.length === 0) return res.json(projects);
+
+    // Aggregate task completion counts per project
+    const stats = await Task.aggregate([
+      { $match: { project: { $in: projectIds } } },
+      {
+        $group: {
+          _id: '$project',
+          totalTasks: { $sum: 1 },
+          completedTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    const byProject = new Map(stats.map((s) => [String(s._id), s]));
+
+    const enriched = projects.map((p) => {
+      const s = byProject.get(String(p._id));
+      const totalTasks = s?.totalTasks ?? 0;
+      const completedTasks = s?.completedTasks ?? 0;
+      const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      return {
+        ...p,
+        completion: { totalTasks, completedTasks, percent },
+      };
+    });
+
+    res.json(enriched);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

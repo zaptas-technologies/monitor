@@ -7,6 +7,27 @@ export default function UserProjects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const getTaskTitleCount = (project) => {
+    if (!project) return 0;
+    if (Array.isArray(project.taskTitleConfigs) && project.taskTitleConfigs.length > 0) {
+      const seen = new Set();
+      project.taskTitleConfigs.forEach((c) => {
+        const t = c.title && String(c.title).trim();
+        if (t) seen.add(t.toLowerCase());
+      });
+      return seen.size;
+    }
+    if (Array.isArray(project.taskTitles) && project.taskTitles.length > 0) {
+      const seen = new Set();
+      project.taskTitles.forEach((raw) => {
+        const t = raw && String(raw).trim();
+        if (t) seen.add(t.toLowerCase());
+      });
+      return seen.size;
+    }
+    return 0;
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -43,8 +64,40 @@ export default function UserProjects() {
                   <div>
                     <Link to={`/projects/${p._id}`} style={{ fontWeight: 500 }}>{p.name}</Link>
                     {p.description && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.9rem' }}>{p.description}</span>}
+                    <div style={{ marginTop: '0.15rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Task titles: <strong>{getTaskTitleCount(p)}</strong>
+                    </div>
                   </div>
-                  <Link to={`/projects/${p._id}`} className="btn btn-ghost">View activities</Link>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    <div style={{ textAlign: 'right', minWidth: 170 }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        Completed: <strong>{p.completion?.percent ?? 0}%</strong>
+                        <span style={{ marginLeft: '0.35rem' }}>
+                          ({p.completion?.completedTasks ?? 0}/{p.completion?.totalTasks ?? 0})
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          marginTop: '0.25rem',
+                          height: 6,
+                          borderRadius: 999,
+                          backgroundColor: 'var(--bg-muted)',
+                          overflow: 'hidden',
+                        }}
+                        aria-label={`Project completion ${p.completion?.percent ?? 0}%`}
+                        role="img"
+                      >
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${Math.max(0, Math.min(100, p.completion?.percent ?? 0))}%`,
+                            backgroundColor: 'var(--primary)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <Link to={`/projects/${p._id}`} className="btn btn-ghost">View activities</Link>
+                  </div>
                 </div>
               </li>
             ))}

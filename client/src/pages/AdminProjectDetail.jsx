@@ -199,6 +199,8 @@ export default function AdminProjectDetail() {
   if (loading) return <div className="page"><p>Loading...</p></div>;
   if (!project) return <div className="page"><p>Project not found.</p></div>;
 
+  const completedTasks = tasks.filter((t) => t.status === 'completed');
+
   return (
     <div className="page">
       <div style={{ marginBottom: '1rem' }}>
@@ -377,31 +379,65 @@ export default function AdminProjectDetail() {
           <p><strong>Assigned:</strong> {project.assignedTo?.map((u) => u.name).join(', ') || 'None'}</p>
         </div>
       )}
-      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Activities / Tasks</h2>
-      <div className="card">
-        {tasks.length === 0 ? (
-          <div className="empty-state"><p>No tasks in this project yet. Users can add tasks when assigned.</p></div>
-        ) : (
-          <ul className="task-list">
-            {tasks.map((t) => (
-              <li
-                key={t._id}
-                className="task-list-item"
-                onClick={() => setSelectedTask(t)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedTask(t); } }}
-              >
-                <strong>{t.title}</strong>
-                <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>by {t.createdBy?.name}</span>
-                <span className={`badge badge-${t.status}`} style={{ marginLeft: '0.5rem' }}>{t.status.replace('_', ' ')}</span>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  Due: {t.dueDate ? new Date(t.dueDate).toLocaleString() : '—'} · Time: {t.timeSpentMinutes ?? 0} min
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: 0 }}>Activities / Tasks</h2>
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          Completed: <strong>{completedTasks.length}</strong> / {tasks.length}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '1rem', alignItems: 'start' }}>
+        <div className="card">
+          {tasks.length === 0 ? (
+            <div className="empty-state"><p>No tasks in this project yet. Users can add tasks when assigned.</p></div>
+          ) : (
+            <ul className="task-list">
+              {tasks.map((t) => (
+                <li
+                  key={t._id}
+                  className="task-list-item"
+                  onClick={() => setSelectedTask(t)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedTask(t); } }}
+                >
+                  <strong>{t.title}</strong>
+                  <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>by {t.createdBy?.name}</span>
+                  <span className={`badge badge-${t.status}`} style={{ marginLeft: '0.5rem' }}>{t.status.replace('_', ' ')}</span>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Due: {t.dueDate ? new Date(t.dueDate).toLocaleString() : '—'} · Time: {t.timeSpentMinutes ?? 0} min
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginBottom: '0.75rem' }}>Completed tasks</h3>
+          {completedTasks.length === 0 ? (
+            <div className="empty-state"><p>No completed tasks yet.</p></div>
+          ) : (
+            <ul className="task-list">
+              {completedTasks.map((t) => (
+                <li
+                  key={t._id}
+                  className="task-list-item"
+                  onClick={() => setSelectedTask(t)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedTask(t); } }}
+                >
+                  <strong>{t.title}</strong>
+                  <span className={`badge badge-${t.status}`} style={{ marginLeft: '0.5rem' }}>{t.status.replace('_', ' ')}</span>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Due: {t.dueDate ? new Date(t.dueDate).toLocaleString() : '—'} · Time: {t.timeSpentMinutes ?? 0} min
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       {selectedTask && <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />}

@@ -24,7 +24,6 @@ export default function AdminProjects() {
     return `${year}-${month}-${day}`;
   };
 
-  // Sum of days for all task title ranges (overlaps and same dates all counted) - for new project form
   const getProjectTotalDays = () => {
     const ranges = (form.taskTitleConfigs || []).filter((c) => c.startDate && c.endDate);
     if (ranges.length === 0) return null;
@@ -32,33 +31,6 @@ export default function AdminProjects() {
     const toUtcDay = (val) => {
       if (!val) return null;
       const parts = val.split('-').map(Number);
-      if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
-      const [y, m, d] = parts;
-      return Date.UTC(y, m - 1, d);
-    };
-
-    const MS_PER_DAY = 1000 * 60 * 60 * 24;
-    let total = 0;
-
-    ranges.forEach((c) => {
-      const s = toUtcDay(c.startDate);
-      const e = toUtcDay(c.endDate);
-      if (s == null || e == null) return;
-      if (e < s) return;
-      total += Math.floor((e - s) / MS_PER_DAY) + 1;
-    });
-
-    return total || null;
-  };
-
-  const getProjectRangeSummary = (project) => {
-    if (!project || !Array.isArray(project.taskTitleConfigs) || project.taskTitleConfigs.length === 0) return null;
-    const ranges = project.taskTitleConfigs.filter((c) => c.startDate && c.endDate);
-    if (ranges.length === 0) return null;
-
-    const toUtcDay = (val) => {
-      if (!val) return null;
-      const parts = String(val).slice(0, 10).split('-').map(Number);
       if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
       const [y, m, d] = parts;
       return Date.UTC(y, m - 1, d);
@@ -75,12 +47,28 @@ export default function AdminProjects() {
     });
     if (minStart == null || maxEnd == null) return null;
     const MS_PER_DAY = 1000 * 60 * 60 * 24;
-    const days = Math.floor((maxEnd - minStart) / MS_PER_DAY) + 1;
-    const startDate = new Date(minStart);
-    const endDate = new Date(maxEnd);
-    const startLabel = startDate.toLocaleDateString();
-    const endLabel = endDate.toLocaleDateString();
-    return { startLabel, endLabel, days };
+    return Math.floor((maxEnd - minStart) / MS_PER_DAY) + 1;
+  };
+
+  const getTaskTitleCount = (project) => {
+    if (!project) return 0;
+    if (Array.isArray(project.taskTitleConfigs) && project.taskTitleConfigs.length > 0) {
+      const seen = new Set();
+      project.taskTitleConfigs.forEach((c) => {
+        const t = c.title && String(c.title).trim();
+        if (t) seen.add(t.toLowerCase());
+      });
+      return seen.size;
+    }
+    if (Array.isArray(project.taskTitles) && project.taskTitles.length > 0) {
+      const seen = new Set();
+      project.taskTitles.forEach((raw) => {
+        const t = raw && String(raw).trim();
+        if (t) seen.add(t.toLowerCase());
+      });
+      return seen.size;
+    }
+    return 0;
   };
 
   const load = async () => {
@@ -165,14 +153,6 @@ export default function AdminProjects() {
     }));
   };
 
-  const clearAllTaskTitles = () => {
-    setForm((f) => ({
-      ...f,
-      taskTitleConfigs: [],
-    }));
-    setTaskTitleInput({ title: '', startDate: '', totalDays: '', endDate: '' });
-  };
-
   if (loading) return <div className="page"><p>Loading projects...</p></div>;
 
   return (
@@ -215,7 +195,7 @@ export default function AdminProjects() {
                       addTaskTitle();
                     }
                   }}
-                  placeholder="e.g. report"
+                  placeholder="e.g. Daily report"
                   style={{ flex: '1 1 160px' }}
                 />
                 <input
@@ -261,19 +241,9 @@ export default function AdminProjects() {
                   style={{ flex: '0 0 150px', backgroundColor: 'var(--bg-muted)' }}
                   placeholder="End date"
                 />
-                 <button type="button" className="btn btn-ghost" onClick={addTaskTitle}>
-                   Add
-                 </button>
-                 {form.taskTitleConfigs.length > 0 && (
-                   <button
-                     type="button"
-                     className="btn btn-ghost btn-danger"
-                     onClick={clearAllTaskTitles}
-                     style={{ marginLeft: '0.25rem' }}
-                   >
-                     Delete all
-                   </button>
-                 )}
+                <button type="button" className="btn btn-ghost" onClick={addTaskTitle}>
+                  Add
+                </button>
               </div>
               {form.taskTitleConfigs.length > 0 && (
                 <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
@@ -300,14 +270,16 @@ export default function AdminProjects() {
                       <button
                         type="button"
                         onClick={() => removeTaskTitle(cfg)}
-                        className="btn btn-ghost btn-danger"
                         style={{
-                          marginLeft: '0.4rem',
-                          padding: '0.1rem 0.4rem',
-                          fontSize: '0.75rem',
+                          marginLeft: '0.25rem',
+                          border: 'none',
+                          background: 'transparent',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
                         }}
+                        aria-label={`Remove ${cfg.title}`}
                       >
-                        Delete
+                        ×
                       </button>
                     </span>
                   ))}
@@ -341,27 +313,46 @@ export default function AdminProjects() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div>
                     <Link to={`/admin/projects/${p._id}`} style={{ fontWeight: 500 }}>{p.name}</Link>
-                    {p.description && (
-                      <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.9rem' }}>
-                        {p.description}
-                      </span>
-                    )}
-                    {(() => {
-                      const summary = getProjectRangeSummary(p);
-                      if (!summary) return null;
-                      return (
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                          Planned: {summary.startLabel} to {summary.endLabel} ({summary.days} day{summary.days === 1 ? '' : 's'})
-                        </div>
-                      );
-                    })()}
+                    {p.description && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.9rem' }}>{p.description}</span>}
                     {p.assignedTo?.length > 0 && (
                       <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
                         ({p.assignedTo.length} user(s))
                       </span>
                     )}
+                    <div style={{ marginTop: '0.15rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Task titles: <strong>{getTaskTitleCount(p)}</strong>
+                    </div>
                   </div>
-                  <Link to={`/admin/projects/${p._id}`} className="btn btn-ghost">View / Edit</Link>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    <div style={{ textAlign: 'right', minWidth: 170 }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        Completed: <strong>{p.completion?.percent ?? 0}%</strong>
+                        <span style={{ marginLeft: '0.35rem' }}>
+                          ({p.completion?.completedTasks ?? 0}/{p.completion?.totalTasks ?? 0})
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          marginTop: '0.25rem',
+                          height: 6,
+                          borderRadius: 999,
+                          backgroundColor: 'var(--bg-muted)',
+                          overflow: 'hidden',
+                        }}
+                        aria-label={`Project completion ${p.completion?.percent ?? 0}%`}
+                        role="img"
+                      >
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${Math.max(0, Math.min(100, p.completion?.percent ?? 0))}%`,
+                            backgroundColor: 'var(--primary)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <Link to={`/admin/projects/${p._id}`} className="btn btn-ghost">View / Edit</Link>
+                  </div>
                 </div>
               </li>
             ))}
