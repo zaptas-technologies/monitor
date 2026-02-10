@@ -92,19 +92,17 @@ export default function AdminProjects() {
     };
 
     const MS_PER_DAY = 1000 * 60 * 60 * 24;
-    let minStart = null;
-    let maxEnd = null;
+    let total = 0;
 
     ranges.forEach((c) => {
       const s = toUtcDay(c.startDate);
       const e = toUtcDay(c.endDate);
       if (s == null || e == null) return;
-      if (minStart == null || s < minStart) minStart = s;
-      if (maxEnd == null || e > maxEnd) maxEnd = e;
+      if (e < s) return;
+      total += Math.floor((e - s) / MS_PER_DAY) + 1;
     });
 
-    if (minStart == null || maxEnd == null) return null;
-    return Math.floor((maxEnd - minStart) / MS_PER_DAY) + 1;
+    return total || null;
   };
 
   const load = async () => {
@@ -364,7 +362,7 @@ export default function AdminProjects() {
                         if (total === 0) return <span>No titles completed yet</span>;
                         return (
                           <span>
-                            Completed titles: <strong>{done}</strong> / {total} ({percent}%)
+                            Completed task: <strong>{done}</strong> / {total} ({percent}%)
                           </span>
                         );
                       })()}
