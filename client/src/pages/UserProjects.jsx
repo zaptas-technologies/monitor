@@ -70,12 +70,12 @@ export default function UserProjects() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <div style={{ textAlign: 'right', minWidth: 170 }}>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      {/* <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         Completed: <strong>{p.completion?.percent ?? 0}%</strong>
                         <span style={{ marginLeft: '0.35rem' }}>
                           ({p.completion?.completedTasks ?? 0}/{p.completion?.totalTasks ?? 0})
                         </span>
-                      </div>
+                      </div> */}
                       <div
                         style={{
                           marginTop: '0.25rem',

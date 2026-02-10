@@ -20,12 +20,15 @@ router.get('/', protect, async (req, res) => {
     const projectIds = projects.map((p) => p._id).filter(Boolean);
     if (projectIds.length === 0) return res.json(projects);
 
-    // Aggregate task completion counts per project
+    // Aggregate task completion counts per project and per title (within project)
     const stats = await Task.aggregate([
       { $match: { project: { $in: projectIds } } },
       {
         $group: {
-          _id: '$project',
+          _id: {
+            project: '$project',
+            titleLower: { $toLower: '$title' },
+          },
           totalTasks: { $sum: 1 },
           completedTasks: {
             $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
@@ -34,16 +37,75 @@ router.get('/', protect, async (req, res) => {
       },
     ]);
 
-    const byProject = new Map(stats.map((s) => [String(s._id), s]));
+    const perProjectTotals = new Map(); // projectId -> { totalTasks, completedTasks }
+    const perProjectTitle = new Map(); // `${projectId}||${titleLower}` -> { totalTasks, completedTasks }
+
+    stats.forEach((row) => {
+      const projectId = String(row._id.project);
+      const titleLower = (row._id.titleLower || '').trim();
+      const totalTasks = row.totalTasks || 0;
+      const completedTasks = row.completedTasks || 0;
+
+      // Aggregate totals per project
+      const prevTotals = perProjectTotals.get(projectId) || { totalTasks: 0, completedTasks: 0 };
+      perProjectTotals.set(projectId, {
+        totalTasks: prevTotals.totalTasks + totalTasks,
+        completedTasks: prevTotals.completedTasks + completedTasks,
+      });
+
+      if (titleLower) {
+        perProjectTitle.set(`${projectId}||${titleLower}`, { totalTasks, completedTasks });
+      }
+    });
 
     const enriched = projects.map((p) => {
-      const s = byProject.get(String(p._id));
-      const totalTasks = s?.totalTasks ?? 0;
-      const completedTasks = s?.completedTasks ?? 0;
+      const projectId = String(p._id);
+      const totals = perProjectTotals.get(projectId) || { totalTasks: 0, completedTasks: 0 };
+      const totalTasks = totals.totalTasks ?? 0;
+      const completedTasks = totals.completedTasks ?? 0;
       const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      // Compute title-based completion: how many task titles are fully completed
+      const titleSet = new Set();
+      if (Array.isArray(p.taskTitleConfigs) && p.taskTitleConfigs.length > 0) {
+        p.taskTitleConfigs.forEach((c) => {
+          const t = c && c.title != null ? String(c.title).trim() : '';
+          if (t) titleSet.add(t.toLowerCase());
+        });
+      } else if (Array.isArray(p.taskTitles) && p.taskTitles.length > 0) {
+        p.taskTitles.forEach((raw) => {
+          const t = raw && String(raw).trim();
+          if (t) titleSet.add(t.toLowerCase());
+        });
+      }
+
+      const allTitles = Array.from(titleSet);
+      const totalTitles = allTitles.length;
+      let completedTitles = 0;
+
+      if (totalTitles > 0) {
+        allTitles.forEach((tLower) => {
+          const statsForTitle = perProjectTitle.get(`${projectId}||${tLower}`);
+          if (!statsForTitle) return;
+          const tTotal = statsForTitle.totalTasks || 0;
+          const tCompleted = statsForTitle.completedTasks || 0;
+          if (tTotal > 0 && tCompleted >= tTotal) {
+            completedTitles += 1;
+          }
+        });
+      }
+
+      const titlePercent =
+        totalTitles > 0 ? Math.round((completedTitles / totalTitles) * 100) : 0;
+
       return {
         ...p,
         completion: { totalTasks, completedTasks, percent },
+        titleCompletion: {
+          totalTitles,
+          completedTitles,
+          percent: titlePercent,
+        },
       };
     });
 

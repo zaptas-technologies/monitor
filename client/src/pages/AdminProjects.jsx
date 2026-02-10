@@ -71,6 +71,13 @@ export default function AdminProjects() {
     return 0;
   };
 
+  const getTitleCompletion = (project) => {
+    const total = project?.titleCompletion?.totalTitles ?? 0;
+    const done = project?.titleCompletion?.completedTitles ?? 0;
+    const percent = project?.titleCompletion?.percent ?? (total > 0 ? Math.round((done / total) * 100) : 0);
+    return { total, done, percent };
+  };
+
   const load = async () => {
     try {
       const [prRes, uRes] = await Promise.all([
@@ -322,15 +329,26 @@ export default function AdminProjects() {
                     <div style={{ marginTop: '0.15rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                       Task titles: <strong>{getTaskTitleCount(p)}</strong>
                     </div>
+                    <div style={{ marginTop: '0.1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      {(() => {
+                        const { total, done, percent } = getTitleCompletion(p);
+                        if (total === 0) return <span>No titles completed yet</span>;
+                        return (
+                          <span>
+                            Completed titles: <strong>{done}</strong> / {total} ({percent}%)
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <div style={{ textAlign: 'right', minWidth: 170 }}>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      {/* <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         Completed: <strong>{p.completion?.percent ?? 0}%</strong>
                         <span style={{ marginLeft: '0.35rem' }}>
                           ({p.completion?.completedTasks ?? 0}/{p.completion?.totalTasks ?? 0})
                         </span>
-                      </div>
+                      </div> */}
                       <div
                         style={{
                           marginTop: '0.25rem',
