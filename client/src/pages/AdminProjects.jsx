@@ -399,7 +399,7 @@ export default function AdminProjects() {
                           ({p.completion?.completedTasks ?? 0}/{p.completion?.totalTasks ?? 0})
                         </span>
                       </div> */}
-                      <div
+                      {/* <div
                         style={{
                           marginTop: '0.25rem',
                           height: 6,
@@ -417,7 +417,7 @@ export default function AdminProjects() {
                             backgroundColor: 'var(--primary)',
                           }}
                         />
-                      </div>
+                      </div> */}
                     </div>
                     <Link to={`/admin/projects/${p._id}`} className="btn btn-ghost">View / Edit</Link>
                   </div>

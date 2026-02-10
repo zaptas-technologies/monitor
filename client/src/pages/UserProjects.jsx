@@ -76,7 +76,7 @@ export default function UserProjects() {
                           ({p.completion?.completedTasks ?? 0}/{p.completion?.totalTasks ?? 0})
                         </span>
                       </div> */}
-                      <div
+                      {/* <div
                         style={{
                           marginTop: '0.25rem',
                           height: 6,
@@ -94,7 +94,7 @@ export default function UserProjects() {
                             backgroundColor: 'var(--primary)',
                           }}
                         />
-                      </div>
+                      </div> */}
                     </div>
                     <Link to={`/projects/${p._id}`} className="btn btn-ghost">View activities</Link>
                   </div>
