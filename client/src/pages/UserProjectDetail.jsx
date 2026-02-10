@@ -82,7 +82,7 @@ export default function UserProjectDetail() {
           <h3 style={{ marginBottom: '1rem' }}>New activity</h3>
           <form onSubmit={handleAddTask}>
             <div className="input-group">
-              <label>Title</label>
+              <label>Task</label>
               <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required placeholder="e.g. Create login component" />
             </div>
             <div className="input-group">

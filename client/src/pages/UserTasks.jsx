@@ -236,7 +236,7 @@ export default function UserTasks() {
               </div>
             )}
             <div className="input-group">
-              <label>Title</label>
+              <label>Task</label>
               <input
                 value={form.title}
                 onChange={(e) => {
@@ -271,7 +271,7 @@ export default function UserTasks() {
                 }
                 return (
                   <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    <div style={{ marginBottom: '0.15rem' }}>Plan this new title (optional):</div>
+                    <div style={{ marginBottom: '0.15rem' }}>Plan this new task (optional):</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
                       <input
                         type="date"
@@ -384,7 +384,7 @@ export default function UserTasks() {
                       const titles = getProjectTaskTitles(taskProject);
                       return (
                         <div className="input-group">
-                          <label>Title</label>
+                          <label>Task</label>
                           <input
                             value={editForm.title}
                             onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
