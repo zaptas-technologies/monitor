@@ -1,15 +1,25 @@
 :root {
-  --bg: #0f0f12;
-  --surface: #18181c;
-  --surface-hover: #222228;
-  --border: #2a2a32;
-  --text: #f0f0f2;
-  --text-muted: #8888a0;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
+  /* Light theme: white + black + green */
+  --bg: #f9fafb; /* App background */
+  --surface: #ffffff; /* Cards / header */
+  --surface-hover: #f1f5f9;
+  --border: #e5e7eb;
+  --text: #020617; /* Almost black text */
+  --text-muted: #6b7280;
+
+  /* Primary / accent (green) */
+  --accent: #16a34a;
+  --accent-hover: #15803d;
+  --primary: #16a34a;
+
+  /* Semantic colors */
   --success: #22c55e;
   --warning: #eab308;
   --danger: #ef4444;
+
+  /* Subtle backgrounds */
+  --bg-muted: #e5e7eb;
+
   --radius: 10px;
   --font: 'DM Sans', system-ui, sans-serif;
 }
