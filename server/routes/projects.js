@@ -83,17 +83,23 @@ router.get('/', protect, async (req, res) => {
       const totalTitles = allTitles.length;
       let completedTitles = 0;
 
-      if (totalTitles > 0) {
-        allTitles.forEach((tLower) => {
-          const statsForTitle = perProjectTitle.get(`${projectId}||${tLower}`);
-          if (!statsForTitle) return;
-          const tTotal = statsForTitle.totalTasks || 0;
-          const tCompleted = statsForTitle.completedTasks || 0;
-          if (tTotal > 0 && tCompleted >= tTotal) {
-            completedTitles += 1;
-          }
-        });
-      }
+      // Also build per-title status so the frontend can calculate "task days" using
+      // actual completed titles, not an approximate ratio.
+      const titleStatus = allTitles.map((tLower) => {
+        const statsForTitle = perProjectTitle.get(`${projectId}||${tLower}`);
+        const tTotal = statsForTitle?.totalTasks || 0;
+        const tCompleted = statsForTitle?.completedTasks || 0;
+        const isComplete = tTotal > 0 && tCompleted >= tTotal;
+        if (isComplete) {
+          completedTitles += 1;
+        }
+        return {
+          titleLower: tLower,
+          totalTasks: tTotal,
+          completedTasks: tCompleted,
+          isComplete,
+        };
+      });
 
       const titlePercent =
         totalTitles > 0 ? Math.round((completedTitles / totalTitles) * 100) : 0;
@@ -106,6 +112,7 @@ router.get('/', protect, async (req, res) => {
           completedTitles,
           percent: titlePercent,
         },
+        titleStatus,
       };
     });
 

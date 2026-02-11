@@ -78,10 +78,19 @@ export default function AdminProjects() {
     return { total, done, percent };
   };
 
-  const getProjectTotalTaskDays = (project) => {
-    if (!project || !Array.isArray(project.taskTitleConfigs)) return null;
+  // Compute total planned task days and completed task days for a project.
+  // This uses per-title completion status from the backend so that the
+  // "completed days" count is based on real completed titles, not just
+  // a percentage approximation.
+  const getProjectTaskDaysProgress = (project) => {
+    if (!project || !Array.isArray(project.taskTitleConfigs)) {
+      return { totalDays: null, completedDays: 0, percent: 0 };
+    }
+
     const ranges = project.taskTitleConfigs.filter((c) => c.startDate && c.endDate);
-    if (ranges.length === 0) return null;
+    if (ranges.length === 0) {
+      return { totalDays: null, completedDays: 0, percent: 0 };
+    }
 
     const toUtcDay = (val) => {
       if (!val) return null;
@@ -92,17 +101,48 @@ export default function AdminProjects() {
     };
 
     const MS_PER_DAY = 1000 * 60 * 60 * 24;
-    let total = 0;
 
-    ranges.forEach((c) => {
-      const s = toUtcDay(c.startDate);
-      const e = toUtcDay(c.endDate);
-      if (s == null || e == null) return;
-      if (e < s) return;
-      total += Math.floor((e - s) / MS_PER_DAY) + 1;
+    // Helper: number of days in a single config (or 0 if invalid)
+    const getRangeDays = (cfg) => {
+      const s = toUtcDay(cfg.startDate);
+      const e = toUtcDay(cfg.endDate);
+      if (s == null || e == null || e < s) return 0;
+      return Math.floor((e - s) / MS_PER_DAY) + 1;
+    };
+
+    // Map of lower‑cased title -> status from backend
+    const statusByLower = Array.isArray(project.titleStatus)
+      ? project.titleStatus.reduce((map, s) => {
+          if (s && s.titleLower) {
+            map.set(s.titleLower, s);
+          }
+          return map;
+        }, new Map())
+      : new Map();
+
+    let totalDays = 0;
+    let completedDays = 0;
+
+    ranges.forEach((cfg) => {
+      const days = getRangeDays(cfg);
+      if (!days) return;
+      totalDays += days;
+      const title = cfg.title && String(cfg.title).trim();
+      if (!title) return;
+      const status = statusByLower.get(title.toLowerCase());
+      if (status && status.isComplete) {
+        completedDays += days;
+      }
     });
 
-    return total || null;
+    if (!totalDays) {
+      return { totalDays: null, completedDays: 0, percent: 0 };
+    }
+
+    const safeCompleted = Math.max(0, Math.min(completedDays, totalDays));
+    const percent = Math.round((safeCompleted / totalDays) * 100);
+
+    return { totalDays, completedDays: safeCompleted, percent };
   };
 
   const load = async () => {
@@ -369,23 +409,11 @@ export default function AdminProjects() {
                     </div>
                     <div style={{ marginTop: '0.1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                       {(() => {
-                        const totalDays = getProjectTotalTaskDays(p);
+                        const { totalDays, completedDays, percent } = getProjectTaskDaysProgress(p);
                         if (totalDays == null) return <span>Task days: —</span>;
-                        const { total, done } = getTitleCompletion(p);
-                        if (total === 0) {
-                          return (
-                            <span>
-                              Task days: <strong>0</strong> / {totalDays} (0%)
-                            </span>
-                          );
-                        }
-                        const completedDays = Math.round((totalDays * done) / total);
-                        const safeCompleted = Math.max(0, Math.min(completedDays, totalDays));
-                        const percentDays =
-                          totalDays > 0 ? Math.round((safeCompleted / totalDays) * 100) : 0;
                         return (
                           <span>
-                            Task days: <strong>{safeCompleted}</strong> / {totalDays} ({percentDays}%)
+                            Task days: <strong>{completedDays}</strong> / {totalDays} ({percent}%)
                           </span>
                         );
                       })()}
