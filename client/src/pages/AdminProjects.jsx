@@ -448,7 +448,8 @@ export default function AdminProjects() {
           <ul style={{ listStyle: 'none' }}>
             {displayedProjects.map((p) => (
               <li key={p._id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {/* Use a two-column grid so the action column on the right has a fixed width */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: '0.75rem', alignItems: 'center' }}>
                   <div>
                     <Link to={`/admin/projects/${p._id}`} style={{ fontWeight: 500 }}>{p.name}</Link>
                     {p?.active === false && (
@@ -486,43 +487,19 @@ export default function AdminProjects() {
                       })()}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <div style={{ textAlign: 'right', minWidth: 170 }}>
-                      {/* <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        Completed: <strong>{p.completion?.percent ?? 0}%</strong>
-                        <span style={{ marginLeft: '0.35rem' }}>
-                          ({p.completion?.completedTasks ?? 0}/{p.completion?.totalTasks ?? 0})
-                        </span>
-                      </div> */}
-                      {/* <div
-                        style={{
-                          marginTop: '0.25rem',
-                          height: 6,
-                          borderRadius: 999,
-                          backgroundColor: 'var(--bg-muted)',
-                          overflow: 'hidden',
-                        }}
-                        aria-label={`Project completion ${p.completion?.percent ?? 0}%`}
-                        role="img"
-                      >
-                        <div
-                          style={{
-                            height: '100%',
-                            width: `${Math.max(0, Math.min(100, p.completion?.percent ?? 0))}%`,
-                            backgroundColor: 'var(--primary)',
-                          }}
-                        />
-                      </div> */}
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', justifyContent: 'flex-end' }}>
+                    {/* Keep a small right-side area for any summary visuals (kept empty for now) */}
+                    <div style={{ textAlign: 'right', minWidth: 100, flex: '0 0 100px' }} />
                     <button
                       type="button"
                       className="btn btn-ghost"
                       onClick={() => toggleProjectActive(p)}
                       aria-pressed={p?.active === false}
+                      style={{ whiteSpace: 'nowrap' }}
                     >
                       {p?.active === false ? 'Activate' : 'Deactivate'}
                     </button>
-                    <Link to={`/admin/projects/${p._id}`} className="btn btn-ghost">View / Edit</Link>
+                    <Link to={`/admin/projects/${p._id}`} className="btn btn-ghost" style={{ whiteSpace: 'nowrap' }}>View / Edit</Link>
                   </div>
                 </div>
               </li>
