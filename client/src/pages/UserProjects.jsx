@@ -33,7 +33,7 @@ export default function UserProjects() {
       try {
         const res = await fetchWithAuth('/api/projects');
         const data = await res.json();
-        if (res.ok) setProjects(data);
+        if (res.ok) setProjects(Array.isArray(data) ? data.filter((p) => p?.active !== false) : []);
       } catch (e) {
         setProjects([]);
       } finally {

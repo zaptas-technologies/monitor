@@ -8,7 +8,16 @@ const router = express.Router();
 // GET /api/projects - admin: all; user: only assigned
 router.get('/', protect, async (req, res) => {
   try {
-    const query = req.user.role === 'admin' ? {} : { assignedTo: req.user._id };
+    let query;
+    if (req.user.role === 'admin') {
+      query = {};
+    } else {
+      // For regular users: only projects assigned to them and that are active (or have no active flag)
+      query = {
+        assignedTo: req.user._id,
+        $or: [{ active: true }, { active: { $exists: false } }],
+      };
+    }
 
     // Use lean() so we can safely attach computed fields (completion stats)
     const projects = await Project.find(query)
@@ -143,7 +152,7 @@ router.get('/:id', protect, async (req, res) => {
 // POST /api/projects - create project (admin only)
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { name, description, assignedTo, taskTitles, taskTitleConfigs } = req.body;
+    const { name, description, assignedTo, taskTitles, taskTitleConfigs, active } = req.body;
     if (!name) return res.status(400).json({ message: 'Project name required' });
     let cleanedTaskTitles = [];
     if (Array.isArray(taskTitles)) {
@@ -170,6 +179,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       assignedTo: assignedTo || [],
       taskTitles: cleanedTaskTitles,
       taskTitleConfigs: cleanedConfigs,
+      active: typeof active === 'boolean' ? active : true,
       createdBy: req.user._id,
     });
     const populated = await Project.findById(project._id)
@@ -184,7 +194,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
 // PATCH /api/projects/:id - update (admin only), e.g. assign users
 router.patch('/:id', protect, adminOnly, async (req, res) => {
   try {
-    const { name, description, assignedTo, taskTitles, taskTitleConfigs } = req.body;
+    const { name, description, assignedTo, taskTitles, taskTitleConfigs, active } = req.body;
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: 'Project not found' });
     if (name != null) project.name = name;
@@ -207,6 +217,9 @@ router.patch('/:id', protect, adminOnly, async (req, res) => {
       const configTitles = cleanedConfigs.map((c) => c.title);
       const mergedTitles = Array.from(new Set([...(project.taskTitles || []), ...configTitles]));
       project.taskTitles = mergedTitles;
+    }
+    if (typeof active === 'boolean') {
+      project.active = active;
     }
     await project.save();
     const populated = await Project.findById(project._id)

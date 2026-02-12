@@ -8,7 +8,7 @@ export default function AdminProjects() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', assignedTo: [], taskTitleConfigs: [] });
+  const [form, setForm] = useState({ name: '', description: '', assignedTo: [], taskTitleConfigs: [], active: true });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [taskTitleInput, setTaskTitleInput] = useState({ title: '', startDate: '', totalDays: '', endDate: '' });
@@ -177,7 +177,7 @@ export default function AdminProjects() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed');
-      setForm({ name: '', description: '', assignedTo: [], taskTitleConfigs: [] });
+      setForm({ name: '', description: '', assignedTo: [], taskTitleConfigs: [], active: true });
       setTaskTitleInput({ title: '', startDate: '', totalDays: '', endDate: '' });
       setShowForm(false);
       load();
@@ -226,6 +226,28 @@ export default function AdminProjects() {
       ),
     }));
   };
+ 
+  const [filter, setFilter] = useState('all'); // 'all' | 'active' | 'inactive'
+
+  // Toggle project active/inactive (admin action)
+  const toggleProjectActive = async (project) => {
+    try {
+      await fetchWithAuth(`/api/projects/${project._id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ active: !project.active }),
+      });
+      load();
+    } catch (err) {
+      // best-effort: set error for UI
+      setError(err.message || 'Failed to update project');
+    }
+  };
+
+  const displayedProjects = projects.filter((p) => {
+    if (filter === 'all') return true;
+    if (filter === 'active') return p?.active !== false;
+    return p?.active === false;
+  });
 
   if (loading) return <div className="page"><p>Loading projects...</p></div>;
 
@@ -233,9 +255,40 @@ export default function AdminProjects() {
     <div className="page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
         <h1>Projects</h1>
-        <button type="button" className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Cancel' : 'Create project'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div role="toolbar" aria-label="Filter projects" style={{ display: 'flex', gap: '0.35rem' }}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setFilter('all')}
+              aria-pressed={filter === 'all'}
+              style={{ fontWeight: filter === 'all' ? 600 : 'normal' }}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setFilter('active')}
+              aria-pressed={filter === 'active'}
+              style={{ fontWeight: filter === 'active' ? 600 : 'normal' }}
+            >
+              Active
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setFilter('inactive')}
+              aria-pressed={filter === 'inactive'}
+              style={{ fontWeight: filter === 'inactive' ? 600 : 'normal' }}
+            >
+              Inactive
+            </button>
+          </div>
+          <button type="button" className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
+            {showForm ? 'Cancel' : 'Create project'}
+          </button>
+        </div>
       </div>
       {showForm && (
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -256,6 +309,17 @@ export default function AdminProjects() {
               <label>Description</label>
               <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
             </div>
+            <div className="input-group">
+              <label>Status</label>
+              <select
+                value={form.active ? 'active' : 'inactive'}
+                onChange={(e) => setForm((f) => ({ ...f, active: e.target.value === 'active' }))}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
             <div className="input-group">
               <label>Task titles (shown as suggestions when users add tasks)</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
@@ -378,15 +442,18 @@ export default function AdminProjects() {
         </div>
       )}
       <div className="card">
-        {projects.length === 0 ? (
+        {displayedProjects.length === 0 ? (
           <div className="empty-state"><p>No projects yet. Create one above.</p></div>
         ) : (
           <ul style={{ listStyle: 'none' }}>
-            {projects.map((p) => (
+            {displayedProjects.map((p) => (
               <li key={p._id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div>
                     <Link to={`/admin/projects/${p._id}`} style={{ fontWeight: 500 }}>{p.name}</Link>
+                    {p?.active === false && (
+                      <span style={{ marginLeft: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>(Inactive)</span>
+                    )}
                     {p.description && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.9rem' }}>{p.description}</span>}
                     {p.assignedTo?.length > 0 && (
                       <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
@@ -447,6 +514,14 @@ export default function AdminProjects() {
                         />
                       </div> */}
                     </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => toggleProjectActive(p)}
+                      aria-pressed={p?.active === false}
+                    >
+                      {p?.active === false ? 'Activate' : 'Deactivate'}
+                    </button>
                     <Link to={`/admin/projects/${p._id}`} className="btn btn-ghost">View / Edit</Link>
                   </div>
                 </div>
