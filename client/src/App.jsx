@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminProjectsGraph from './pages/AdminProjectsGraph';
 import AdminUsers from './pages/AdminUsers';
 import AdminUserDetail from './pages/AdminUserDetail';
 import AdminProjects from './pages/AdminProjects';
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
           <Route path="admin/users/:id" element={<ProtectedRoute adminOnly><AdminUserDetail /></ProtectedRoute>} />
           <Route path="admin/projects" element={<ProtectedRoute adminOnly><AdminProjects /></ProtectedRoute>} />
+          <Route path="admin/projects/graphs" element={<ProtectedRoute adminOnly><AdminProjectsGraph /></ProtectedRoute>} />
           <Route path="admin/projects/:id" element={<ProtectedRoute adminOnly><AdminProjectDetail /></ProtectedRoute>} />
           {/* User routes */}
           <Route path="tasks" element={<UserTasks />} />

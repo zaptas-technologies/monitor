@@ -14,6 +14,10 @@ export default function AdminDashboard() {
           <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>Projects</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Create projects and assign to users</p>
         </Link>
+        <Link to="/admin/projects/graphs" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>Project graphs</h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>View progress and task-day graphs for all projects</p>
+        </Link>
       </div>
     </div>
   );
