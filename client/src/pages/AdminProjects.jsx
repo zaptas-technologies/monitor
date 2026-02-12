@@ -492,14 +492,39 @@ export default function AdminProjects() {
                     <div style={{ textAlign: 'right', minWidth: 100, flex: '0 0 100px' }} />
                     <button
                       type="button"
-                      className="btn btn-ghost"
+                      className="btn"
                       onClick={() => toggleProjectActive(p)}
                       aria-pressed={p?.active === false}
-                      style={{ whiteSpace: 'nowrap' }}
+                      style={{
+                        backgroundColor: p?.active === false ? '#16a34a' : '#ef4444',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '0.35rem 0.6rem',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
                     >
                       {p?.active === false ? 'Activate' : 'Deactivate'}
                     </button>
-                    <Link to={`/admin/projects/${p._id}`} className="btn btn-ghost" style={{ whiteSpace: 'nowrap' }}>View / Edit</Link>
+                    <Link
+                      to={`/admin/projects/${p._id}`}
+                      className="btn"
+                      style={{
+                        backgroundColor: '#2563eb',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '0.35rem 0.6rem',
+                        borderRadius: 6,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      View / Edit
+                    </Link>
                   </div>
                 </div>
               </li>
