@@ -12,9 +12,11 @@ import { fileURLToPath } from 'url';
 await connectDB();
 
 const app = express();
+
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
@@ -22,14 +24,18 @@ app.use('/api/tasks', taskRoutes);
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
-// Serve static files from the client build directory (for production / static hosting)
+// Static files
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
+const clientBuildPath = path.join(__dirname, '..', 'client', 'dist');
+
 app.use(express.static(clientBuildPath));
 
-// SPA fallback — serve index.html for any non-API route
+// SPA fallback (safe version)
 app.get('*', (req, res) => {
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(404).json({ message: 'API route not found' });
+  }
   res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
