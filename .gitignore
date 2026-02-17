@@ -1,25 +1,19 @@
 # Dependencies
 node_modules/
 
-# Environment
 
 
-# Build / output
-dist/
-build/
+
+# Logs
 *.log
 npm-debug.log*
 
-# IDE / OS
-.idea/
-.vscode/
-*.swp
+# OS
 .DS_Store
 Thumbs.db
 
-# Vite
-client/dist/
-
-# Misc
-*.tgz
-.cache/
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

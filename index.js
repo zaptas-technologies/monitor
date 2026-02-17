@@ -9,12 +9,22 @@ import taskRoutes from './routes/tasks.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// Fix __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Define client build path
+const clientBuildPath = path.join(__dirname, 'dist');
+
 await connectDB();
 
 const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+
+// Serve frontend
+app.use(express.static(clientBuildPath));
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -24,14 +34,7 @@ app.use('/api/tasks', taskRoutes);
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
-// Static files
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const clientBuildPath = path.join(__dirname, 'dist');
-
-app.use(express.static(clientBuildPath));
-
-// SPA fallback (safe version)
+// SPA fallback
 app.get('*', (req, res) => {
   if (req.originalUrl.startsWith('/api')) {
     return res.status(404).json({ message: 'API route not found' });
